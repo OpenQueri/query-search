@@ -8,7 +8,7 @@ int main() {
     // Створюємо стеммер для української
     sb_stemmer* stemmer = sb_stemmer_new("ukrainian", "UTF_8");
     if (!stemmer) {
-        std::cerr << "Не вдалося створити стеммер\n";
+        std::cerr << "Error stemmer \n";
         return 1;
     }
 
@@ -26,8 +26,8 @@ int main() {
         std::string stem_str((const char*)stem);
         
         
-        std::cout << "Слово: " << word 
-                  << " -> Стем: " << stem_str << std::endl;
+        std::cout << "word: " << word 
+                  << " -> stremm: " << stem_str << std::endl;
     }
     
 
