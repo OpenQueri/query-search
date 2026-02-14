@@ -27,6 +27,8 @@ if [ -n "${CPPFLAGS}" ]; then
   echo "CPPFLAGS=${CPPFLAGS}"
 fi
 
+CXXFLAGS="$CXXFLAGS -Wno-narrowing"
+
 g++ $CFLAGS $CPPFLAGS $CXXFLAGS -shared -fPIC \
   cldutil.cc cldutil_shared.cc compact_lang_det.cc compact_lang_det_hint_code.cc \
   compact_lang_det_impl.cc  debug.cc fixunicodevalue.cc \
