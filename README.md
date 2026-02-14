@@ -9,6 +9,23 @@ Original Snowball project: [https://snowballstem.org/](https://snowballstem.org/
 
 ---
 
+## Supported Languages
+
+- English (built into Snowball)
+- Russian (built into Snowball)  
+- **Ukrainian** (added manually)
+
+### Ukrainian Stemmer
+
+Special thanks to **[Roman Kobzar (Tapkomet)](https://github.com/Tapkomet)** for creating the Ukrainian Snowball stemmer.  
+His work makes it possible to support the Ukrainian language in this project.
+
+The Ukrainian stemmer algorithm is based on:  
+[https://github.com/amakukha/stemmers_ukrainian/blob/master/src/tapkomet_stem/stem_ukr.sbl](https://github.com/amakukha/stemmers_ukrainian/blob/master/src/tapkomet_stem/stem_ukr.sbl)  
+(3-Clause BSD License)
+
+---
+
 ## Usage
 
 - Russian, Ukrainian, and English are supported via libstemmer_c.

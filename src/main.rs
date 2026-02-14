@@ -2,7 +2,6 @@ use std::error::Error;
 
 use rayon::prelude::*;
 
-use rust_stemmers::{Algorithm, Stemmer};
 
 fn main() -> Result<(), Box<dyn Error>> {
 
