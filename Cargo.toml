@@ -3,6 +3,11 @@ name = "query-search"
 version = "0.1.0"
 edition = "2024"
 
+[build-dependencies]
+cc = "1.0"
+
 [dependencies]
+cld2_lib = { path = "./cld2_lib" }
+libc = "0.2"
 rayon = "1.11.0"
 snowball = "0.1.3"

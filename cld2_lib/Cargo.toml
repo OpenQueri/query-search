@@ -1,0 +1,12 @@
+[package]
+name = "cld2_lib"
+version = "0.1.0"
+edition = "2021"
+
+[build-dependencies]
+cc = "1.0"
+
+[lib]
+name = "cld2_lib"
+path = "src/lib.rs"
+crate-type = ["rlib", "cdylib", "staticlib"]
