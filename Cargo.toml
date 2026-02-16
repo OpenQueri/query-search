@@ -7,7 +7,13 @@ edition = "2024"
 cc = "1.0"
 
 [dependencies]
-cld2_lib = { path = "./cld2_lib" }
+
+cld3 = "0.1.1"
+
 libc = "0.2"
 rayon = "1.11.0"
 snowball = "0.1.3"
+
+once_cell = "1.19"
+object-pool = "0.6.0"
+tokio = { version = "1", features = ["full"] }
