@@ -1,7 +1,6 @@
 use std::error::Error;
 
 use rayon::prelude::*;
-use std::sync::Arc;
 
 mod extract_words;
 mod cld3;
