@@ -12,7 +12,7 @@ thread_local! {
     );
 }
 
-pub async fn cld3_main<'a>(text: &'a str) -> Result<String, Box<dyn Error>>{
+pub async fn cld3_main(text: &str) -> Result<String, Box<dyn Error>>{
 
     CLD_POOL.with(|pool_cell: &RefCell<Pool<NNetLanguageIdentifier>>| {
             let pool = pool_cell.borrow_mut();
