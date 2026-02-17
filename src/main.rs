@@ -13,13 +13,13 @@ use extract_words::extract_words::extract_words;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
 
-    let words = "Can I say Hello please?";
+    let words = "Еду домой?";
 
-    let res = cld3_main(&words).await?;
-    
+    let result_cld3_main = cld3_main(&words).await?;
+
     let ve_res = extract_words(&[&words]).await?;
 
-    println!("Lang{} Vec:{:?}",res , ve_res);
+    println!("Lang: {} Vec:{:?}",result_cld3_main , ve_res);
 
     Ok(())
 }
