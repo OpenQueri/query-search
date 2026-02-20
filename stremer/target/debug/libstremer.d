@@ -1,0 +1,1 @@
+/home/kiril/OpenQueri/query-search/stremer/target/debug/libstremer.rlib: /home/kiril/OpenQueri/query-search/stremer/build.rs /home/kiril/OpenQueri/query-search/stremer/cpp/include/libstemmer.h /home/kiril/OpenQueri/query-search/stremer/src/lib.rs /home/kiril/OpenQueri/query-search/stremer/target/debug/build/stremer-ac9e8258d790d29a/out/bindings.rs
