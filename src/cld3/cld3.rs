@@ -37,6 +37,10 @@ static LANGUAGES: phf::Map<&'static str, &'static str> = phf_map!(
     "tr" => "turkish",
     "yi" => "yiddish",
     "uk" => "ukrainian",
+    "eng" => "english",
+    "ara" => "arabic",
+    "fra" => "french",
+
 );
 
 thread_local! {

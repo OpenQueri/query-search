@@ -8,6 +8,7 @@ cc = "1.0"
 
 [dependencies]
 
+stremmer = {path = "./stremmer"}
 cld3 = "0.1.1"
 
 libc = "0.2"

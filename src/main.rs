@@ -4,10 +4,12 @@ use rayon::prelude::*;
 
 mod extract_words;
 mod cld3;
-
+mod stremmer;
 
 use cld3::cld3::cld3_main;
 use extract_words::extract_words::extract_words;
+
+
 
 
 #[tokio::main]
