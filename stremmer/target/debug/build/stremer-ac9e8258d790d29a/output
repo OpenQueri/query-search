@@ -1,0 +1,8 @@
+cargo:rustc-link-search=native=cpp/lib
+cargo:rustc-link-lib=static=stemmer
+cargo:rerun-if-env-changed=TARGET
+cargo:rerun-if-env-changed=BINDGEN_EXTRA_CLANG_ARGS_x86_64-unknown-linux-gnu
+cargo:rerun-if-env-changed=BINDGEN_EXTRA_CLANG_ARGS_x86_64_unknown_linux_gnu
+cargo:rerun-if-env-changed=BINDGEN_EXTRA_CLANG_ARGS
+cargo:rerun-if-changed=cpp/include/libstemmer.h
+cargo:rerun-if-changed=cpp/include/libstemmer.h
