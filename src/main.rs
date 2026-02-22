@@ -1,4 +1,4 @@
-use std::{error::Error};
+use std::{error::Error, thread};
 
 use rayon::prelude::*;
 
@@ -21,21 +21,25 @@ pub struct Request<'a>{
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
 
-    let words = "Чи не здається тобі, що коли я сьогодні пізно ввечері після довгого та виснажливого робочого дня нарешті сяду в той старий, трохи іржавий, але такий рідний автомобіль та поїду через все місто додому, де на мене чекає тепла постіль, свіжозварена кава та улюблений кіт, який вже напевно засумував, то це буде найкращим завершенням цього нескінченного дня?";
+    let text = "Чи не здається тобі, що коли я сьогодні пізно ввечері після довгого та виснажливого робочого дня нарешті сяду в той старий, трохи іржавий, але такий рідний автомобіль та поїду через все місто додому, де на мене чекає тепла постіль, свіжозварена кава та улюблений кіт, який вже напевно засумував, то це буде найкращим завершенням цього нескінченного дня?";
 
-    let result_cld3_main = cld3_main(&words).await?;
+    let result_cld3_main = cld3_main(&text).await?;
 
-    let result_extract_words = extract_words(&[&words]).await?;
-    
+    let result_extract_words = extract_words(&[&text]).await?;
 
     let stremer_main = stremer_main(&result_cld3_main, &result_extract_words).await?;
 
-    let res = Request{
+    let request = Request{
         launge: result_cld3_main,
         words: stremer_main,
     };
 
-    engine_main(&res).await?;
+    let worker_handle = thread::spawn(move ||{
+
+        engine_main(&request).await?;
+
+    });
+
 
 
     Ok(())
