@@ -27,7 +27,6 @@ impl EngineSearch{
     // Currently takes Vec<(word, weight)>, but weight is not used yet
     // Simple term frequency sum (no tf-idf, no normalization)
     pub async fn engine_search(request_text: Vec<(String, usize)>) -> Result<(), Box<dyn Error>>{
-        println!("{:?}", request_text);
         let all_links_map = Arc::clone(&ALL_LINKS);
 
         scope(|s|{
@@ -46,7 +45,6 @@ impl EngineSearch{
                     }
                 }
 
-                println!("{:?}", map_index_site);
 
                 let mut response: Vec<Response> = Vec::new();
 
@@ -56,7 +54,6 @@ impl EngineSearch{
 
                     // Lookup URL by hash
                     if let Some(get_link) = all_links_map.read().unwrap().get(&hesh){
-                        println!("{}", get_link);
                         response.push(Response {
                             link: get_link.clone(),
                             frequency: site_frequency.clone(),
@@ -64,7 +61,6 @@ impl EngineSearch{
                     };
                 }
 
-                println!("{:?}", response)
             });
         });
 
@@ -86,7 +82,6 @@ impl EngineEdit {
             s.spawn( |_| {
                 // Hash of the URL (used as document ID)
                 let hesh = AllFrequencySite.calculate_hash(&link).unwrap();
-                println!("\n Hesh {}", hesh);
 
                 // Fast path: check if already exists (read lock)
                 if let Some(val) = all_links_map.read().unwrap().get_index_of(&hesh){
@@ -111,9 +106,6 @@ impl EngineEdit {
                 };
             });
         });
-
-        // Debug print current state of both maps
-        println!("{:?}, \n\n {:?}", ALL_LINKS.read(), LINK_DATA);
 
         Ok(())
     }
