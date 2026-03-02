@@ -10,16 +10,20 @@ mod engine;
 use cld3::cld3::cld3_main;
 use extract_words::extract_words::extract_words;
 use stremmer::stremer_main::stremer_main;
-use engine::engine_main::engine_main;
+use engine::engine_main::{EngineEdit, EngineSearch};
 
 #[derive(Debug)]
 pub struct Request<'a>{
     launge: &'a str,
-    words: Vec<Option<String>>,
+    words: Vec<String>,
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
+
+    let link = "https://www.google.com/";
+    let linke = "https://www.googl4.com/";
+    let linker = "https://www.goo4gl4.com/";
 
     let text = "Чи не здається тобі, що коли я сьогодні пізно ввечері після довгого та виснажливого робочого дня нарешті сяду в той старий, трохи іржавий, але такий рідний автомобіль та поїду через все місто додому, де на мене чекає тепла постіль, свіжозварена кава та улюблений кіт, який вже напевно засумував, то це буде найкращим завершенням цього нескінченного дня?";
 
@@ -34,11 +38,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
         words: stremer_main,
     };
 
-    let worker_handle = thread::spawn(move ||{
+    EngineEdit::engine_write(&link, &request).await?;
+    EngineEdit::engine_write(&linke, &request).await?;
+    EngineEdit::engine_write(&linker, &request).await?;
 
-        engine_main(&request).await?;
-
-    });
+    EngineSearch::engine_search(&request).await?;
 
 
 
