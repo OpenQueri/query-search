@@ -5,6 +5,7 @@ use once_cell::sync::{Lazy};
 use rayon::{prelude::*, spawn, scope};
 use crate::Request;
 use crate::engine::other::*;
+use std::sync::mpsc;
 
 // Global storage: hash → full URL string
 // IndexMap preserves insertion order
@@ -26,8 +27,10 @@ pub struct EngineSearch;
 impl EngineSearch{
     // Currently takes Vec<(word, weight)>, but weight is not used yet
     // Simple term frequency sum (no tf-idf, no normalization)
-    pub async fn engine_search(request_text: Vec<(String, usize)>) -> Result<(), Box<dyn Error>>{
+    pub async fn engine_search(request_text: Vec<(String, usize)>) -> Result<Vec<Response>, Box<dyn Error>>{
         let all_links_map = Arc::clone(&ALL_LINKS);
+
+        let (tx,rx) = mpsc::channel();
 
         scope(|s|{
             s.spawn(|_|{
@@ -61,10 +64,16 @@ impl EngineSearch{
                     };
                 }
 
+                tx.send(response).unwrap();
+
+
             });
         });
 
-        Ok(())
+        let response_read = rx.recv()?;
+
+
+        Ok(response_read)
     }
 }
 
