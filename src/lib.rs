@@ -1,12 +1,13 @@
-use std::{error::Error, thread, time::Duration};
+use std::{error::Error, time::Duration};
 
-use rayon::prelude::*;
+
 
 mod extract_words;
 mod cld3;
 mod stremmer;
 mod engine;
 
+use serde::Serialize;
 use cld3::cld3::cld3_main;
 use extract_words::extract_words::extract_words;
 use stremmer::stremer_main::stremer_main;
@@ -16,10 +17,10 @@ use std::time::Instant;
 use crate::engine::engine_main::Response;
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize)] 
 pub struct ResponseSearchData{
-    result: Vec<Response>,
-    duration: Duration,
+    pub result: Vec<Response>,
+    pub duration: Duration,
 }
 
 pub async fn search_data(text: &str) -> Result<ResponseSearchData, Box<dyn Error>>{
@@ -46,7 +47,6 @@ pub async fn search_data(text: &str) -> Result<ResponseSearchData, Box<dyn Error
 pub async fn add_data(link: &[&str], text: &[&str]) -> Result<(), Box<dyn Error>>{
 
     for (link, text) in link.iter().zip(text.iter()) {
-
         let (request, link) = match  request(text, link).await {
             Ok(val) => val,
             Err(e) => return Err(e), 
@@ -58,10 +58,10 @@ pub async fn add_data(link: &[&str], text: &[&str]) -> Result<(), Box<dyn Error>
 }
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize)] 
 pub struct Request<'a>{
-    launge: &'a str,
-    words: Vec<String>,
+    pub launge: &'a str,
+    pub words: Vec<String>,
 }
 pub async fn request<'b>(text: &str, link:&'b str ) -> Result<(Request<'b>, &'b str), Box<dyn Error>>{
 
