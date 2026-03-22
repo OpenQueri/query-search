@@ -28,10 +28,15 @@ pub async fn search_data(text: &str) -> Result<ResponseSearchData, Box<dyn Error
     let start = Instant::now();
 
     let vec_text = vec![text];
-    
-    let extra: Vec<(String, usize)> = extract_words(&[&vec_text[0]]).await?;
 
-    let result = EngineSearch::engine_search(extra).await?;
+    
+    let result_extract_words: Vec<(String, usize)> = extract_words(&[&vec_text[0]]).await?;
+
+    let result_cld3_main = cld3_main(&text).await?;
+
+    let stremer_main = stremer_main(&result_cld3_main, &result_extract_words).await?;
+
+    let result = EngineSearch::engine_search(stremer_main).await?;
 
     let duration = start.elapsed();
 
@@ -51,6 +56,8 @@ pub async fn add_data(link: &[&str], text: &[&str]) -> Result<(), Box<dyn Error>
             Ok(val) => val,
             Err(e) => return Err(e), 
         };
+
+
         EngineEdit::engine_write(&link, &request).await?;
     }
 

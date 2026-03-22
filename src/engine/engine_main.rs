@@ -26,7 +26,7 @@ pub struct EngineSearch;
 impl EngineSearch{
     // Currently takes Vec<(word, weight)>, but weight is not used yet
     // Simple term frequency sum (no tf-idf, no normalization)
-    pub async fn engine_search(request_text: Vec<(String, usize)>) -> Result<Vec<Response>, Box<dyn Error>>{
+    pub async fn engine_search(request_text: Vec<String>) -> Result<Vec<Response>, Box<dyn Error>>{
         let all_links_map = Arc::clone(&ALL_LINKS);
 
 
@@ -35,7 +35,7 @@ impl EngineSearch{
                 let mut map_index_site:IndexMap<usize, usize> = IndexMap::new();
 
                 // For each word in the query
-                for (word, usize) in request_text.iter(){
+                for (word) in request_text.iter(){
                     // Get posting list for this word
                     if let Some(val) = LINK_DATA.get(word){
                         // Increment counter for every document that contains the word
