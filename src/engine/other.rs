@@ -3,7 +3,7 @@ use std::{error::Error};
 use std::collections::HashSet;
 use std::hash::{Hash, Hasher};
 use std::collections::hash_map::DefaultHasher;
-
+use fxhash::FxHasher;
 pub trait Other {
     fn cout_frequency(&self, words: &[String]) -> Result<u64, Box<dyn Error>>;
     fn calculate_hash(&self, link: &str) -> Result<u64, Box<dyn Error>>;
@@ -19,7 +19,7 @@ impl Other for AllFrequencySite{
     }
 
     fn calculate_hash(&self, link: &str) -> Result<u64, Box<dyn Error>> {
-        let mut hasher = DefaultHasher::new();
+        let mut hasher = FxHasher::default();
         link.hash(&mut hasher);
         Ok(hasher.finish())
     }

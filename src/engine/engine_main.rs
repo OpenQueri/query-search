@@ -5,7 +5,6 @@ use once_cell::sync::{Lazy};
 use crate::Request;
 use crate::engine::other::*;
 use serde::Serialize;
-
 // Global storage: hash → full struct URL string + title string
 // IndexMap preserves insertion order
 // RwLock + Arc for safe concurrent access (mostly reads, rare writes)
@@ -17,7 +16,7 @@ static ALL_LINKS: Lazy<Arc<RwLock<IndexMap<u64, ContentURL>>>> = Lazy::new(||{Ar
 
 // Inverted index: word → list of document hashes (u64)
 // DashMap chosen for concurrent reads/writes
-static LINK_DATA: Lazy<DashMap<String, Vec<u64>>> = Lazy::new(||{DashMap::new()});
+static LINK_DATA: Lazy<DashMap<u64, Vec<u64>>> = Lazy::new(||{DashMap::new()});
 
 #[derive(Debug, Clone, Serialize)] 
 pub struct Response{
@@ -39,10 +38,13 @@ impl EngineSearch{
                 // Accumulate document → match count
                 let mut map_index_site:IndexMap<usize, usize> = IndexMap::new();
 
+                //
+                let site = AllFrequencySite;
+
                 // For each word in the query
                 for word in request_text.iter(){
                     // Get posting list for this word
-                    if let Some(val) = LINK_DATA.get(word){
+                    if let Some(val) = LINK_DATA.get(&site.calculate_hash(word.as_str())?){
                         // Increment counter for every document that contains the word
                         val.iter().for_each(|iw| {
                             *map_index_site.entry((*iw).try_into().unwrap()).or_insert(0) += 1;
@@ -95,7 +97,7 @@ impl EngineEdit {
             drop(read_guard); // звільняємо read lock
             
             for (i, word) in worlds.iter().enumerate() {
-                LINK_DATA.entry(word.to_string()).or_insert(Vec::new()).push(hesh);
+                LINK_DATA.entry(site.calculate_hash(word.as_str())?).or_insert(Vec::new()).push(hesh);
             }
         } else {
             drop(read_guard); // звільняємо read lock перед write
@@ -114,7 +116,7 @@ impl EngineEdit {
 
             // Add all words to inverted index
             for (i, word) in worlds.iter().enumerate() {
-                LINK_DATA.entry(word.to_string()).or_insert(Vec::new()).push(gen_num_id);
+                LINK_DATA.entry(site.calculate_hash(word.as_str())?).or_insert(Vec::new()).push(gen_num_id);
             }
         };
 
