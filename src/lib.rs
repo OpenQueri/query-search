@@ -75,18 +75,25 @@ pub async fn search_data(text: &str) -> Result<ResponseSearchData, Box<dyn Error
     Ok(response)
 }
 
+#[derive(Debug, Clone, Serialize)] 
+pub struct DataADD<'a>{
+    pub title: &'a str,
+    pub link: &'a str,
+    pub text: &'a str,
+}
 
-pub async fn add_data(link: &[&str], text: &[&str]) -> Result<(), Box<dyn Error>>{
+pub async fn add_data(data: &DataADD<'_>) -> Result<(), Box<dyn Error>>{
 
-    for (link, text) in link.iter().zip(text.iter()) {
-        let (request, link) = match  request(text, link).await {
-            Ok(val) => val,
-            Err(e) => return Err(e), 
-        };
+    
+
+    let (request, link, title) = match  request(data.text, data.link, data.title).await {
+        Ok(val) => val,
+        Err(e) => return Err(e), 
+    };
 
 
-        EngineEdit::engine_write(&link, &request).await?;
-    }
+    EngineEdit::engine_write(&title, &link, &request).await?;
+    
 
     Ok(())
 }
@@ -97,7 +104,7 @@ pub struct Request<'a>{
     pub launge: &'a str,
     pub words: Vec<String>,
 }
-pub async fn request<'b>(text: &str, link:&'b str ) -> Result<(Request<'b>, &'b str), Box<dyn Error>>{
+pub async fn request<'b>(text: &str, link:&'b str, title: &'b str ) -> Result<(Request<'b>, &'b str,&'b str), Box<dyn Error>>{
 
 
     let result_cld3_main = cld3_main(&text).await?;
@@ -112,5 +119,5 @@ pub async fn request<'b>(text: &str, link:&'b str ) -> Result<(Request<'b>, &'b 
     };
 
 
-    Ok((request,&link))
+    Ok((request,&link, &title))
 }

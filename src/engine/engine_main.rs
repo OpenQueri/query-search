@@ -6,10 +6,14 @@ use crate::Request;
 use crate::engine::other::*;
 use serde::Serialize;
 
-// Global storage: hash → full URL string
+// Global storage: hash → full struct URL string + title string
 // IndexMap preserves insertion order
 // RwLock + Arc for safe concurrent access (mostly reads, rare writes)
-static ALL_LINKS: Lazy<Arc<RwLock<IndexMap<u64, String>>>> = Lazy::new(||{Arc::new(RwLock::new(IndexMap::new()))});
+struct ContentURL{
+    url: String,
+    title: String,
+}
+static ALL_LINKS: Lazy<Arc<RwLock<IndexMap<u64, ContentURL>>>> = Lazy::new(||{Arc::new(RwLock::new(IndexMap::new()))});
 
 // Inverted index: word → list of document hashes (u64)
 // DashMap chosen for concurrent reads/writes
@@ -35,7 +39,7 @@ impl EngineSearch{
                 let mut map_index_site:IndexMap<usize, usize> = IndexMap::new();
 
                 // For each word in the query
-                for (word) in request_text.iter(){
+                for word in request_text.iter(){
                     // Get posting list for this word
                     if let Some(val) = LINK_DATA.get(word){
                         // Increment counter for every document that contains the word
@@ -72,7 +76,7 @@ impl EngineEdit {
     // Add or update document in the index
     // If URL already exists → just append words to posting lists
     // If not → register new URL and add words
-    pub async fn engine_write(link: &str, request: &Request<'_>) -> Result<(), Box<dyn Error>>{
+    pub async fn engine_write(title: &str, link: &str, request: &Request<'_>) -> Result<(), Box<dyn Error>>{
         
         let all_links_map = Arc::clone(&ALL_LINKS);
         let worlds = &request.words;
@@ -99,8 +103,13 @@ impl EngineEdit {
             // Re-compute hash (just in case)
             let gen_num_id = site.calculate_hash(link)?;
 
+
             // Insert URL and get its position (though position not used here)
-            let (idx, _) = writetable_map.insert_full(gen_num_id, link.to_string());
+
+            let (idx, _) = writetable_map.insert_full(gen_num_id, ContentURL{
+                url: title.to_string(),
+                title: title.to_string(),
+            };);
 
             // Add all words to inverted index
             for (i, word) in worlds.iter().enumerate() {
