@@ -21,6 +21,7 @@ static LINK_DATA: Lazy<DashMap<String, Vec<u64>>> = Lazy::new(||{DashMap::new()}
 
 #[derive(Debug, Clone, Serialize)] 
 pub struct Response{
+    title: String,
     link: String,
     frequency: usize,
 }
@@ -59,7 +60,8 @@ impl EngineSearch{
                     // Lookup URL by hash
                     if let Some(get_link) = all_links_map.read().unwrap().get(&hesh){
                         response.push(Response {
-                            link: get_link.clone(),
+                            link: get_link.url.clone(),
+                            title: get_link.title.clone(),
                             frequency: site_frequency.clone(),
                         });
                     };
@@ -105,11 +107,10 @@ impl EngineEdit {
 
 
             // Insert URL and get its position (though position not used here)
-
             let (idx, _) = writetable_map.insert_full(gen_num_id, ContentURL{
-                url: title.to_string(),
+                url: link.to_string(),
                 title: title.to_string(),
-            };);
+            });
 
             // Add all words to inverted index
             for (i, word) in worlds.iter().enumerate() {
