@@ -33,7 +33,7 @@ pub struct ResponseSearchData<'b>{
 
 pub async fn search_data(text: &str) -> Result<ResponseSearchData, Box<dyn Error>> {
     // Початок вимірювання
-    let start_tsc = read_tsc();
+    //let start_tsc = read_tsc();
     let start_time = Instant::now();
 
     // Основний код пошуку
@@ -44,27 +44,27 @@ pub async fn search_data(text: &str) -> Result<ResponseSearchData, Box<dyn Error
     let result = EngineSearch::engine_search(stremer_main).await?;
     
     let duration = start_time.elapsed();
-    let end_tsc = read_tsc();
+    //let end_tsc = read_tsc();
     
     // Підрахунок тактів
-    let cycles = end_tsc - start_tsc;
+    //let cycles = end_tsc - start_tsc;
     
     // Статистика
-    println!("\n📊 ПРОДУКТИВНІСТЬ ПОШУКУ:");
-    println!("   Запит: \"{}\"", text);
-    println!("   Довжина тексту: {} символів", text.len());
+    // println!("\n📊 ПРОДУКТИВНІСТЬ ПОШУКУ:");
+    // println!("   Запит: \"{}\"", text);
+    // println!("   Довжина тексту: {} символів", text.len());
     println!("   Час: {:?}", duration);
-    println!("   Тактів CPU: {} тактів", cycles);
-    println!("   Тактів на символ: {:.0} тактів", cycles as f64 / text.len() as f64);
+    // println!("   Тактів CPU: {} тактів", cycles);
+    // println!("   Тактів на символ: {:.0} тактів", cycles as f64 / text.len() as f64);
     
     // Оцінка IPC (приблизно 4-6 інструкцій за такт)
-    let estimated_ipc = 5.0;
-    let estimated_instructions = cycles as f64 * estimated_ipc;
-    println!("   Приблизно інструкцій: {:.0}", estimated_instructions);
+    // let estimated_ipc = 5.0;
+    //// let estimated_instructions = cycles as f64 * estimated_ipc;
+    //println!("   Приблизно інструкцій: {:.0}", estimated_instructions);
     
     // Розрахунок теоретичного RPS
-    let rps = 1_000_000_000.0 / duration.as_nanos() as f64;
-    println!("   Теоретичний RPS: {:.0} зап/сек", rps);
+    //let rps = 1_000_000_000.0 / duration.as_nanos() as f64;
+    //println!("   Теоретичний RPS: {:.0} зап/сек", rps);
     
     let response = ResponseSearchData {
         language: &result_cld3_main,

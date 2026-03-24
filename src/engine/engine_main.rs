@@ -5,6 +5,8 @@ use once_cell::sync::{Lazy};
 use crate::Request;
 use crate::engine::other::*;
 use serde::Serialize;
+
+
 // Global storage: hash → full struct URL string + title string
 // IndexMap preserves insertion order
 // RwLock + Arc for safe concurrent access (mostly reads, rare writes)
@@ -12,7 +14,8 @@ struct ContentURL{
     url: String,
     title: String,
 }
-static ALL_LINKS: Lazy<Arc<RwLock<IndexMap<u64, ContentURL>>>> = Lazy::new(||{Arc::new(RwLock::new(IndexMap::new()))});
+static ALL_LINKS: Lazy<DashMap<u64, ContentURL>> = Lazy::new(||{DashMap::new()});
+
 
 // Inverted index: word → list of document hashes (u64)
 // DashMap chosen for concurrent reads/writes
@@ -31,9 +34,6 @@ impl EngineSearch{
     // Currently takes Vec<(word, weight)>, but weight is not used yet
     // Simple term frequency sum (no tf-idf, no normalization)
     pub async fn engine_search(request_text: Vec<String>) -> Result<Vec<Response>, Box<dyn Error>>{
-        let all_links_map = Arc::clone(&ALL_LINKS);
-
-
        
                 // Accumulate document → match count
                 let mut map_index_site:IndexMap<usize, usize> = IndexMap::new();
@@ -60,7 +60,7 @@ impl EngineSearch{
                     let hesh = site_idx.clone() as u64;
 
                     // Lookup URL by hash
-                    if let Some(get_link) = all_links_map.read().unwrap().get(&hesh){
+                    if let Some(get_link) = ALL_LINKS.get(&hesh){
                         response.push(Response {
                             link: get_link.url.clone(),
                             title: get_link.title.clone(),
@@ -82,40 +82,36 @@ impl EngineEdit {
     // If not → register new URL and add words
     pub async fn engine_write(title: &str, link: &str, request: &Request<'_>) -> Result<(), Box<dyn Error>>{
         
-        let all_links_map = Arc::clone(&ALL_LINKS);
         let worlds = &request.words;
 
         let site = AllFrequencySite;
 
         // Hash of the URL (used as document ID)
-        let hesh = AllFrequencySite.calculate_hash(link)?;
+        let hesh = AllFrequencySite.calculate_hash(&link)?;
 
         // Fast path: check if already exists (read lock)
-        let read_guard = all_links_map.read().unwrap();
-        
-        if let Some(_) = read_guard.get_index_of(&hesh) {
-            drop(read_guard); // звільняємо read lock
+        //get_index_of(&hesh)
+        if let Some(_) = ALL_LINKS.get(&hesh) {
             
             for (i, word) in worlds.iter().enumerate() {
                 LINK_DATA.entry(site.calculate_hash(word.as_str())?).or_insert(Vec::new()).push(hesh);
             }
-        } else {
-            drop(read_guard); // звільняємо read lock перед write
             
-            let mut writetable_map = all_links_map.write().unwrap();
+        } else {
+            
 
             // Re-compute hash (just in case)
-            let gen_num_id = site.calculate_hash(link)?;
+            let gen_num_id = site.calculate_hash(&link)?;
 
 
             // Insert URL and get its position (though position not used here)
-            let (idx, _) = writetable_map.insert_full(gen_num_id, ContentURL{
+            ALL_LINKS.insert(gen_num_id, ContentURL{
                 url: link.to_string(),
                 title: title.to_string(),
             });
 
             // Add all words to inverted index
-            for (i, word) in worlds.iter().enumerate() {
+            for (_, word) in worlds.iter().enumerate() {
                 LINK_DATA.entry(site.calculate_hash(word.as_str())?).or_insert(Vec::new()).push(gen_num_id);
             }
         };

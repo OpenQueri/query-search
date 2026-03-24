@@ -11,10 +11,11 @@ keywords = ["search", "engine", "inverted-index", "information-retrieval"]
 categories = ["algorithms", "database"]
 
 [build-dependencies]
-cc = "1.0"
+cc = "1.2.57"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
+rustflags = ["-C", "target-cpu=native"]
 
 [dependencies]
 
@@ -22,15 +23,15 @@ serde = { version = "1", features = ["derive"] }
 stremer = {path = "./stremmer"}
 cld3 = "0.1.1"
 
-libc = "0.2"
+libc = "0.2.183"
 rayon = "1.11.0"
 snowball = "0.1.3"
 
 rustc-hash = "2.1.1"
 
-once_cell = "1.19"
+once_cell = "1.21.4"
 object-pool = "0.6.0"
-tokio = { version = "1", features = ["full"] }
+tokio = { version = "1.50.0", features = ["full"] }
 
 regex = "1.12.3"
 phf = { version="0.13.1", features=["macros"]}
@@ -45,4 +46,6 @@ lto = "fat"
 codegen-units = 1     
 panic = "abort"       
 opt-level = 3
-strip = true      
+strip = true   
+
+
