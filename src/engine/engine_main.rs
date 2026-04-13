@@ -4,12 +4,13 @@ use indexmap::IndexMap;
 use once_cell::sync::{Lazy};
 use crate::Request;
 use crate::engine::other::*;
-use serde::Serialize;
+use serde::{Serialize, Deserialize};
 
 
 // Global storage: hash → full struct URL string + title string
 // IndexMap preserves insertion order
 // RwLock + Arc for safe concurrent access (mostly reads, rare writes)
+#[derive(Serialize, Deserialize, Clone)]
 struct ContentURL{
     url: String,
     title: String,
@@ -86,6 +87,7 @@ impl EngineEdit {
 
         let site = AllFrequencySite;
 
+
         // Hash of the URL (used as document ID)
         let hesh = AllFrequencySite.calculate_hash(&link)?;
 
@@ -113,9 +115,55 @@ impl EngineEdit {
             // Add all words to inverted index
             for (_, word) in worlds.iter().enumerate() {
                 LINK_DATA.entry(site.calculate_hash(word.as_str())?).or_insert(Vec::new()).push(gen_num_id);
+                SaveLoadData::save_links().await?;
             }
         };
 
         Ok(())
     }
+}
+
+
+use std::fs::File;
+use std::io::{BufReader, BufWriter};
+pub struct SaveLoadData;
+
+impl SaveLoadData {
+
+    const DB_ALL_LINKS: &str = "ALL_LINKS.bin";
+    const BD_LINK_DATA: &str = "LINK_DATA.bin";
+
+
+    pub async fn save_links() -> Result<(), Box<dyn Error>> {
+        let map_links = &*ALL_LINKS;
+        let map_data = &*LINK_DATA;
+
+        let file_links = BufWriter::new(File::create(Self::DB_ALL_LINKS)?);
+        let file_data = BufWriter::new(File::create(Self::BD_LINK_DATA)?);
+
+        bincode::serialize_into(file_links, map_links)?;
+        
+        bincode::serialize_into(file_data, map_data)?;
+
+        println!("--- Кэш сохранен: {} сайтов, {} индексов ---", map_links.len(), map_data.len());
+        
+        Ok(())
+    }
+
+    pub async fn load_everything() -> Result<(), Box<dyn Error>> {
+        if std::path::Path::new(Self::DB_ALL_LINKS).exists() {
+            let file = BufReader::new(File::open(Self::DB_ALL_LINKS)?);
+            let loaded: DashMap<u64, ContentURL> = bincode::deserialize_from(file)?;
+            for (k, v) in loaded { ALL_LINKS.insert(k, v); }
+        }
+
+       if std::path::Path::new(Self::BD_LINK_DATA).exists() {
+            let file = BufReader::new(File::open(Self::BD_LINK_DATA)?);
+            let loaded: DashMap<u64, Vec<u64>> = bincode::deserialize_from(file)?;
+            for (k, v) in loaded { LINK_DATA.insert(k, v); }
+        }
+        
+        Ok(())
+    }
+
 }
