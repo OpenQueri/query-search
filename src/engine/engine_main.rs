@@ -1,4 +1,4 @@
-use std::{error::Error, sync::RwLock, sync::Arc};
+use std::{error::Error};
 use dashmap::DashMap;
 use indexmap::IndexMap;
 use once_cell::sync::{Lazy};
@@ -144,8 +144,6 @@ impl SaveLoadData {
         bincode::serialize_into(file_links, map_links)?;
         
         bincode::serialize_into(file_data, map_data)?;
-
-        println!("--- Кэш сохранен: {} сайтов, {} индексов ---", map_links.len(), map_data.len());
         
         Ok(())
     }
