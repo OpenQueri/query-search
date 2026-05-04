@@ -124,44 +124,89 @@ impl EngineEdit {
 }
 
 
-use std::fs::File;
-use std::io::{BufReader, BufWriter};
+
+use std::fs;
+use bincode;
+use sled::{Db, Tree};
+
 pub struct SaveLoadData;
 
 impl SaveLoadData {
+    // Тепер це не просто файли, а назва папки з базою
+    const DB_NAME: &str = "search_engine_db";
+    
+    // Окремі дерева (як таблиці) всередині Sled
+    const TREE_LINKS: &str = "links";
+    const TREE_DATA: &str = "link_data";
 
-    const DB_ALL_LINKS: &str = "ALL_LINKS.bin";
-    const BD_LINK_DATA: &str = "LINK_DATA.bin";
+    /// Відкриває базу даних Sled
+    fn open_db() -> Result<Db, Box<dyn Error>> {
+        let db = sled::open(Self::DB_NAME)?;
+        Ok(db)
+    }
 
-
+    /// Зберігає поточний стан ALL_LINKS та LINK_DATA в Sled
+    /// У Sled це працює як дозапис (upsert)
     pub async fn save_links() -> Result<(), Box<dyn Error>> {
-        let map_links = &*ALL_LINKS;
-        let map_data = &*LINK_DATA;
-
-        let file_links = BufWriter::new(File::create(Self::DB_ALL_LINKS)?);
-        let file_data = BufWriter::new(File::create(Self::BD_LINK_DATA)?);
-
-        bincode::serialize_into(file_links, map_links)?;
+        let db = Self::open_db()?;
         
-        bincode::serialize_into(file_data, map_data)?;
+        let tree_links = db.open_tree(Self::TREE_LINKS)?;
+        let tree_data = db.open_tree(Self::TREE_DATA)?;
+
+        // Зберігаємо посилання з ALL_LINKS
+        for entry in ALL_LINKS.iter() {
+            let key = entry.key().to_be_bytes();
+            let val = bincode::serialize(entry.value())?;
+            tree_links.insert(key, val)?;
+        }
+
+        // Зберігаємо дані індексу з LINK_DATA
+        for entry in LINK_DATA.iter() {
+            let key = entry.key().to_be_bytes();
+            let val = bincode::serialize(entry.value())?;
+            tree_data.insert(key, val)?;
+        }
+
+        // Чекаємо, поки дані фізично запишуться на диск
+        db.flush_async().await?;
         
         Ok(())
     }
 
+    /// Завантажує все з Sled у DashMap (ALL_LINKS та LINK_DATA)
     pub async fn load_everything() -> Result<(), Box<dyn Error>> {
-        if std::path::Path::new(Self::DB_ALL_LINKS).exists() {
-            let file = BufReader::new(File::open(Self::DB_ALL_LINKS)?);
-            let loaded: DashMap<u64, ContentURL> = bincode::deserialize_from(file)?;
-            for (k, v) in loaded { ALL_LINKS.insert(k, v); }
+        // Якщо папки бази немає, то й вантажити нічого
+        if !std::path::Path::new(Self::DB_NAME).exists() {
+            println!("База даних {} ще не створена. Пропускаю.", Self::DB_NAME);
+            return Ok(());
         }
 
-       if std::path::Path::new(Self::BD_LINK_DATA).exists() {
-            let file = BufReader::new(File::open(Self::BD_LINK_DATA)?);
-            let loaded: DashMap<u64, Vec<u64>> = bincode::deserialize_from(file)?;
-            for (k, v) in loaded { LINK_DATA.insert(k, v); }
+        let db = Self::open_db()?;
+        let tree_links = db.open_tree(Self::TREE_LINKS)?;
+        let tree_data = db.open_tree(Self::TREE_DATA)?;
+
+        // Вантажимо посилання
+        let mut links_count = 0;
+        for item in tree_links.iter() {
+            let (k, v) = item?;
+            let hash = u64::from_be_bytes(k.as_ref().try_into()?);
+            let content: ContentURL = bincode::deserialize(&v)?;
+            ALL_LINKS.insert(hash, content);
+            links_count += 1;
         }
+
+        // Вантажимо індекс слів
+        let mut data_count = 0;
+        for item in tree_data.iter() {
+            let (k, v) = item?;
+            let word_hash = u64::from_be_bytes(k.as_ref().try_into()?);
+            let site_hashes: Vec<u64> = bincode::deserialize(&v)?;
+            LINK_DATA.insert(word_hash, site_hashes);
+            data_count += 1;
+        }
+
+        println!("Sled: завантажено {} посилань та {} індексів", links_count, data_count);
         
         Ok(())
     }
-
 }

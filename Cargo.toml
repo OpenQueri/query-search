@@ -1,7 +1,7 @@
 [package]
 name = "query-search"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 description = "High-performance search engine with inverted index"
 authors = ["Kyrylo Seriuk https://github.com/Kileer20100"]
 license = "MIT"
@@ -21,7 +21,7 @@ rustflags = ["-C", "target-cpu=native"]
 
 serde = { version = "1", features = ["derive"] }
 stremer = {path = "./stremmer"}
-cld3 = "0.1.1"
+whatlang = "0.16"
 
 libc = "0.2.183"
 rayon = "1.11.0"
@@ -41,9 +41,10 @@ sha2 = "0.10.9"
 perf-event = "0.4"
 fxhash = "0.2"
 bincode = "1.3"
+sled = "0.34"
 
 [profile.release]
-lto = "fat"        
+lto = "fat"      
 codegen-units = 1     
 panic = "abort"       
 opt-level = 3
