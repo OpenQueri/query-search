@@ -11,7 +11,7 @@ use engine::engine_main::{EngineEdit, EngineSearch,SaveLoadData};
 use std::time::Instant;
 use perf_event::{Builder, Group, events::Hardware};
 use std::arch::x86_64::_rdtsc;
-
+use crawler_engine::DataSiteResponse;
 
 use crate::engine::engine_main::Response;
 
@@ -73,27 +73,12 @@ pub async fn search_data(text: &str) -> Result<ResponseSearchData, Box<dyn Error
 
 
 
-
-
-#[derive(Debug, Clone, Serialize)] 
-pub struct DataADD<'a>{
-    pub title: &'a str,
-    pub link: &'a str,
-    pub text: &'a str,
-    pub image: &'a str,
-
-}
-pub async fn add_data(data: &DataADD<'_>) -> Result<(), Box<dyn Error>>{
+pub async fn add_data(data: &Vec<DataSiteResponse>) -> Result<(), Box<dyn Error>>{
 
     
-
-    let (request, link, title) = match  request(data.text, data.link, data.title).await {
-        Ok(val) => val,
-        Err(e) => return Err(e), 
-    };
+    
 
 
-    EngineEdit::engine_write(&title, &link, &request).await?;
     
 
     Ok(())
