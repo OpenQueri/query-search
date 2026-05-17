@@ -2,15 +2,11 @@ use std::{error::Error, time::Duration};
 
 
 
-mod extract_words;
-mod cld3;
-mod stremmer;
 mod engine;
+mod seo;
+mod extract_words;
 
 use serde::Serialize;
-use cld3::cld3::cld3_main;
-use extract_words::extract_words::extract_words;
-use stremmer::stremer_main::stremer_main;
 use engine::engine_main::{EngineEdit, EngineSearch,SaveLoadData};
 use std::time::Instant;
 use perf_event::{Builder, Group, events::Hardware};
@@ -75,13 +71,18 @@ pub async fn search_data(text: &str) -> Result<ResponseSearchData, Box<dyn Error
     Ok(response)
 }
 
+
+
+
+
 #[derive(Debug, Clone, Serialize)] 
 pub struct DataADD<'a>{
     pub title: &'a str,
     pub link: &'a str,
     pub text: &'a str,
-}
+    pub image: &'a str,
 
+}
 pub async fn add_data(data: &DataADD<'_>) -> Result<(), Box<dyn Error>>{
 
     
@@ -98,6 +99,7 @@ pub async fn add_data(data: &DataADD<'_>) -> Result<(), Box<dyn Error>>{
     Ok(())
 }
 
+
 pub async fn loading_data() -> Result<(), Box<dyn Error>>{
 
 
@@ -107,25 +109,3 @@ pub async fn loading_data() -> Result<(), Box<dyn Error>>{
     Ok(())
 }
 
-#[derive(Debug, Clone, Serialize)] 
-pub struct Request<'a>{
-    pub launge: &'a str,
-    pub words: Vec<String>,
-}
-pub async fn request<'b>(text: &str, link:&'b str, title: &'b str ) -> Result<(Request<'b>, &'b str,&'b str), Box<dyn Error>>{
-
-
-    let result_cld3_main = cld3_main(&text).await?;
-
-    let result_extract_words = extract_words(&[&text]).await?;
-
-    let stremer_main = stremer_main(&result_cld3_main, &result_extract_words).await?;
-
-    let request = Request{
-        launge: &result_cld3_main,
-        words: stremer_main,
-    };
-
-
-    Ok((request,&link, &title))
-}

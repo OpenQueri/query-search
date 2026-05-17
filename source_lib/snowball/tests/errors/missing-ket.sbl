@@ -1,7 +1,0 @@
-externals (stem
-integers (i
-define stem as (
-  non-()
-  $(cursor > 0
-  $i = (1 + 2
-  hop 5 [tolimit] delete

@@ -1,9 +1,3 @@
-# Rust
-/target/
-**/target/
-*/target/*
-
-
-# VS Code
-.vscode/
-.idea/
+/target
+**/*.rs.bk
+Cargo.lock

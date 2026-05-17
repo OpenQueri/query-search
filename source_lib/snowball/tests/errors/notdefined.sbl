@@ -1,4 +1,0 @@
-externals (stem)
-groupings (g)
-routines (r)
-define stem as (g r)

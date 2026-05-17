@@ -1,2 +1,0 @@
-// This segfaulted in print_node_() with 3.0.1 because the program was NULL.
-stringescapes{}
