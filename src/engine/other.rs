@@ -4,23 +4,16 @@ use std::collections::HashSet;
 use std::hash::{Hash, Hasher};
 use std::collections::hash_map::DefaultHasher;
 use fxhash::FxHasher;
-pub trait Other {
-    fn cout_frequency(&self, words: &[String]) -> Result<u64, Box<dyn Error>>;
-    fn calculate_hash(&self, link: &str) -> Result<u64, Box<dyn Error>>;
-}
 
-pub struct AllFrequencySite;
 
-impl Other for AllFrequencySite{
-    fn cout_frequency(&self, words: &[String]) -> Result<u64, Box<dyn Error>>{
-        
-        let len = words.len();
-        Ok(len as u64)
-    }
+pub struct Other;
 
-    fn calculate_hash(&self, link: &str) -> Result<u64, Box<dyn Error>> {
+impl  Other{
+
+
+    pub async fn hash_u64(link: &str) -> u64 {
         let mut hasher = FxHasher::default();
         link.hash(&mut hasher);
-        Ok(hasher.finish())
+        hasher.finish()
     }
 }
