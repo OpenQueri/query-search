@@ -2,92 +2,137 @@ use std::{error::Error, time::Duration};
 
 
 
+mod extract;
+mod onnx;
 mod engine;
-mod seo;
-mod extract_words;
 
 use serde::Serialize;
-use engine::engine_main::{EngineEdit, EngineSearch,SaveLoadData};
+use snowball::traits::query;
 use std::time::Instant;
-use perf_event::{Builder, Group, events::Hardware};
 use std::arch::x86_64::_rdtsc;
 use crawler_engine::DataSiteResponse;
+use onnx::onnx::OnnxEmbeddingEngine;
+use crate::extract::extract_sentences::extract_chunks;
+use tokio::task;
+use crate::engine::engine_main::{EngineEdit,EngineSearch,MetaData,SaveLoadData,SearchIndex};
 
-use crate::engine::engine_main::Response;
-
-#[inline(always)]
-fn read_tsc() -> u64 {
-    unsafe { _rdtsc() }
-}
-
-#[derive(Debug, Clone, Serialize)] 
-pub struct ResponseSearchData<'b>{
-    pub language: &'b str,
-    pub result: Vec<Response>,
+#[derive(Debug)]
+pub struct Query{
+    pub meta_data: Vec<MetaData>,
     pub duration: Duration,
 }
 
-pub async fn search_data(text: &str) -> Result<ResponseSearchData, Box<dyn Error>> {
-    // Початок вимірювання
-    //let start_tsc = read_tsc();
+pub async fn search_data(text: &str) -> Result<Query, Box<dyn Error + Send + Sync>> {
+
     let start_time = Instant::now();
 
-    // Основний код пошуку
-    let vec_text = vec![text];
-    let result_extract_words: Vec<(String, usize)> = extract_words(&[&vec_text[0]]).await?;
-    let result_cld3_main = cld3_main(text).await?;
-    let stremer_main = stremer_main(&result_cld3_main, &result_extract_words).await?;
-    let result = EngineSearch::engine_search(stremer_main).await?;
+
+    let raw_embedding = {
+        let onnx = OnnxEmbeddingEngine::global();
+        onnx.get_raw_embedding_query(text)
+    };
+    let  mut reult_search = vec![MetaData{
+        url: "UUN".to_string(),
+        title: "Error".to_string(),
+        image: vec!["".to_string()]
+    }];
+
+    match raw_embedding {
+        Ok(res) => {
+
+            reult_search = EngineSearch::engine_search(&res, 30).await?;
+
+
+        },
+        Err(e) => println!("Помилка ONNX: {}", e),
+    }
+
+
     
     let duration = start_time.elapsed();
-    //let end_tsc = read_tsc();
-    
-    // Підрахунок тактів
-    //let cycles = end_tsc - start_tsc;
-    
-    // Статистика
-    // println!("\n📊 ПРОДУКТИВНІСТЬ ПОШУКУ:");
-    // println!("   Запит: \"{}\"", text);
-    // println!("   Довжина тексту: {} символів", text.len());
-    println!("   Час: {:?}", duration);
-    // println!("   Тактів CPU: {} тактів", cycles);
-    // println!("   Тактів на символ: {:.0} тактів", cycles as f64 / text.len() as f64);
-    
-    // Оцінка IPC (приблизно 4-6 інструкцій за такт)
-    // let estimated_ipc = 5.0;
-    //// let estimated_instructions = cycles as f64 * estimated_ipc;
-    //println!("   Приблизно інструкцій: {:.0}", estimated_instructions);
-    
-    // Розрахунок теоретичного RPS
-    //let rps = 1_000_000_000.0 / duration.as_nanos() as f64;
-    //println!("   Теоретичний RPS: {:.0} зап/сек", rps);
-    
-    let response = ResponseSearchData {
-        language: &result_cld3_main,
-        result: result,
+
+    let query = Query{
+        meta_data: reult_search,
         duration: duration,
     };
+
+    println!("{:?}",query);
+
+    println!("Час: {:?}", duration);
+
     
-    Ok(response)
+    
+    Ok(query)
 }
 
 
 
-pub async fn add_data(data: &Vec<DataSiteResponse>) -> Result<(), Box<dyn Error>>{
+pub async fn add_data(data: Vec<DataSiteResponse>) -> Result<(), Box<dyn Error + Send + Sync>> {
+    let mut handles = vec![];
 
-    
-    
+    for site_data in data {
+        let handle = task::spawn(async move {
+            let mut cout_sentens = 0;
+            let start_time_all = Instant::now();
 
+            let mut text_refs: Vec<&str> = site_data.text.iter().map(|s| s.as_str()).collect();
+            text_refs.push(&site_data.title.as_str());
+            
+            let sentences_result = extract_chunks(&text_refs).await.map_err(|e| e.to_string());
 
-    
+            match sentences_result {
+                Ok(sentences) => {
+                    for fragment in sentences {
+                        cout_sentens += 1;
+                        
+                        let raw_embedding = {
+                            let onnx = OnnxEmbeddingEngine::global();
+                            onnx.get_raw_embedding_passage(fragment.as_str())
+                        };
+
+                        match raw_embedding {
+                            Ok(res) => {
+                                let meta_data = MetaData {
+                                    url: site_data.link.clone(),
+                                    title: site_data.title.clone(),
+                                    image: site_data.image.clone(),
+                                };
+
+                                match EngineEdit::engine_insert(res, meta_data).await {
+                                    Ok(_) => {},
+                                    Err(e) => println!("add_data: {}", e),
+                                }
+                            },
+                            Err(e) => println!("Помилка ONNX: {}", e),
+                        }
+                    }
+                },
+                Err(e) => println!("Помилка чанкера: {}", e), 
+            };
+
+            let duration_all = start_time_all.elapsed();
+
+            println!("--------------------------------------------------");
+            println!("🔗 Сайт: {}", site_data.link);
+            println!("⚡ Час оброблення сайту в потоці: {:?}", duration_all);
+            println!("📊 Речень оброблено: {}", cout_sentens);
+            println!("--------------------------------------------------");
+        });
+
+        handles.push(handle);
+    }
+
+    for handle in handles {
+        let _ = handle.await;
+    }
 
     Ok(())
 }
 
+pub async fn loading_data() -> Result<(), Box<dyn Error + Send + Sync>>{
 
-pub async fn loading_data() -> Result<(), Box<dyn Error>>{
 
-
+    
     SaveLoadData::load_everything().await?;
     
 
