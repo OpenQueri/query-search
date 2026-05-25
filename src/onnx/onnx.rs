@@ -75,6 +75,7 @@ impl OnnxEmbeddingEngine {
 
         // L2 normalization
         let norm = embedding.iter().map(|x| x * x).sum::<f32>().sqrt();
+        
         let mut embedding = if norm > 0.0 {
             embedding.into_iter().map(|x| x / norm).collect()
         } else {

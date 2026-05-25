@@ -1,71 +1,89 @@
 use std::{error::Error, time::Duration};
-
-
-
 mod extract;
 mod onnx;
 mod engine;
-
-use serde::Serialize;
-use snowball::traits::query;
+use serde::{Deserialize,Serialize};
 use std::time::Instant;
-use std::arch::x86_64::_rdtsc;
 use crawler_engine::DataSiteResponse;
 use onnx::onnx::OnnxEmbeddingEngine;
 use crate::extract::extract_sentences::extract_chunks;
 use tokio::task;
 use crate::engine::engine_main::{EngineEdit,EngineSearch,MetaData,SaveLoadData,SearchIndex};
 
-#[derive(Debug)]
-pub struct Query{
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct MetaSite {
+    pub url: String,
+    pub title: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct QuerySite {
+    pub meta_data: Vec<MetaSite>,
+    pub duration: Duration,
+}
+
+pub async fn search_site_data(text: &str) -> Result<QuerySite, Box<dyn Error + Send + Sync>> {
+    let start_time = Instant::now();
+
+    let onnx = OnnxEmbeddingEngine::global();
+    let raw_embedding = onnx.get_raw_embedding_query(text)?;
+
+    let limit = 30;
+
+    let result_search = EngineSearch::engine_search(&raw_embedding, limit).await?;
+
+    let duration = start_time.elapsed();
+
+    let mut meta_site_vec = Vec::new();
+
+    for data in result_search{
+        let contetn_site = MetaSite{
+            url: data.url,
+            title: data.title,
+        };
+        meta_site_vec.push(contetn_site);
+
+
+    }
+
+    let query = QuerySite {
+        meta_data: meta_site_vec,
+        duration,
+    };
+
+    println!("Час: {:?}", duration);
+
+    Ok(query)
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct QueryImage {
     pub meta_data: Vec<MetaData>,
     pub duration: Duration,
 }
 
-pub async fn search_data(text: &str) -> Result<Query, Box<dyn Error + Send + Sync>> {
-
+pub async fn search_image_data(text: &str) -> Result<QueryImage, Box<dyn Error + Send + Sync>> {
     let start_time = Instant::now();
 
+    let onnx = OnnxEmbeddingEngine::global();
+    let raw_embedding = onnx.get_raw_embedding_query(text)?;
 
-    let raw_embedding = {
-        let onnx = OnnxEmbeddingEngine::global();
-        onnx.get_raw_embedding_query(text)
-    };
-    let  mut reult_search = vec![MetaData{
-        url: "UUN".to_string(),
-        title: "Error".to_string(),
-        image: vec!["".to_string()]
-    }];
+    let limit = 30;
 
-    match raw_embedding {
-        Ok(res) => {
+    let result_search = EngineSearch::engine_search(&raw_embedding, limit).await?;
 
-            reult_search = EngineSearch::engine_search(&res, 30).await?;
-
-
-        },
-        Err(e) => println!("Помилка ONNX: {}", e),
-    }
-
-
-    
     let duration = start_time.elapsed();
 
-    let query = Query{
-        meta_data: reult_search,
-        duration: duration,
+    let query = QueryImage {
+        meta_data: result_search,
+        duration,
     };
 
-    println!("{:?}",query);
-
+    println!("image {:?}", query);
     println!("Час: {:?}", duration);
 
-    
-    
     Ok(query)
 }
-
-
 
 pub async fn add_data(data: Vec<DataSiteResponse>) -> Result<(), Box<dyn Error + Send + Sync>> {
     let mut handles = vec![];
