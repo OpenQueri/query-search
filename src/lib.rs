@@ -9,6 +9,9 @@ use onnx::onnx::OnnxEmbeddingEngine;
 use crate::extract::extract_sentences::extract_chunks;
 use tokio::task;
 use crate::engine::engine_main::{EngineEdit,EngineSearch,MetaData,SaveLoadData,SearchIndex};
+use tokio::sync::Semaphore;
+use std::sync::Arc;
+use futures::stream::{self, StreamExt}; 
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct MetaSite {
@@ -22,29 +25,38 @@ pub struct QuerySite {
     pub duration: Duration,
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct QueryImage {
+    pub meta_data: Vec<MetaData>,
+    pub duration: Duration,
+}
+
+
 pub async fn search_site_data(text: &str) -> Result<QuerySite, Box<dyn Error + Send + Sync>> {
     let start_time = Instant::now();
 
-    let onnx = OnnxEmbeddingEngine::global();
-    let raw_embedding = onnx.get_raw_embedding_query(text)?;
+    let text_owned = text.to_string();
+
+    let raw_embedding = task::spawn_blocking(move || {
+        let onnx = OnnxEmbeddingEngine::global();
+        onnx.get_raw_embedding_query(&text_owned)
+    })
+    .await?
+    ?;     
 
     let limit = 30;
-
     let result_search = EngineSearch::engine_search(&raw_embedding, limit).await?;
 
     let duration = start_time.elapsed();
 
-    let mut meta_site_vec = Vec::new();
 
-    for data in result_search{
-        let contetn_site = MetaSite{
+    let meta_site_vec: Vec<MetaSite> = result_search
+        .into_iter()
+        .map(|data| MetaSite {
             url: data.url,
             title: data.title,
-        };
-        meta_site_vec.push(contetn_site);
-
-
-    }
+        })
+        .collect();
 
     let query = QuerySite {
         meta_data: meta_site_vec,
@@ -56,20 +68,19 @@ pub async fn search_site_data(text: &str) -> Result<QuerySite, Box<dyn Error + S
     Ok(query)
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct QueryImage {
-    pub meta_data: Vec<MetaData>,
-    pub duration: Duration,
-}
-
 pub async fn search_image_data(text: &str) -> Result<QueryImage, Box<dyn Error + Send + Sync>> {
     let start_time = Instant::now();
 
-    let onnx = OnnxEmbeddingEngine::global();
-    let raw_embedding = onnx.get_raw_embedding_query(text)?;
+    let text_owned = text.to_string();
+
+    let raw_embedding = task::spawn_blocking(move || {
+        let onnx = OnnxEmbeddingEngine::global();
+        onnx.get_raw_embedding_query(&text_owned)
+    })
+    .await?
+    ?;
 
     let limit = 30;
-
     let result_search = EngineSearch::engine_search(&raw_embedding, limit).await?;
 
     let duration = start_time.elapsed();
@@ -85,16 +96,20 @@ pub async fn search_image_data(text: &str) -> Result<QueryImage, Box<dyn Error +
     Ok(query)
 }
 
-pub async fn add_data(data: Vec<DataSiteResponse>) -> Result<(), Box<dyn Error + Send + Sync>> {
-    let mut handles = vec![];
 
-    for site_data in data {
-        let handle = task::spawn(async move {
+pub async fn add_data(data: Vec<DataSiteResponse>) -> Result<(), Box<dyn Error + Send + Sync>> {
+    let start_time_total = Instant::now();
+    
+
+    let max_parallel_sites = 3; 
+
+    stream::iter(data)
+        .for_each_concurrent(max_parallel_sites, |site_data| async move {
             let mut cout_sentens = 0;
-            let start_time_all = Instant::now();
+            let start_time_site = Instant::now();
 
             let mut text_refs: Vec<&str> = site_data.text.iter().map(|s| s.as_str()).collect();
-            text_refs.push(&site_data.title.as_str());
+            text_refs.push(site_data.title.as_str());
             
             let sentences_result = extract_chunks(&text_refs).await.map_err(|e| e.to_string());
 
@@ -118,7 +133,7 @@ pub async fn add_data(data: Vec<DataSiteResponse>) -> Result<(), Box<dyn Error +
 
                                 match EngineEdit::engine_insert(res, meta_data).await {
                                     Ok(_) => {},
-                                    Err(e) => println!("add_data: {}", e),
+                                    Err(e) => println!("add_data (insert error): {}", e),
                                 }
                             },
                             Err(e) => println!("Помилка ONNX: {}", e),
@@ -128,22 +143,17 @@ pub async fn add_data(data: Vec<DataSiteResponse>) -> Result<(), Box<dyn Error +
                 Err(e) => println!("Помилка чанкера: {}", e), 
             };
 
-            let duration_all = start_time_all.elapsed();
+            let duration_site = start_time_site.elapsed();
 
             println!("--------------------------------------------------");
             println!("🔗 Сайт: {}", site_data.link);
-            println!("⚡ Час оброблення сайту в потоці: {:?}", duration_all);
+            println!("⚡ Час оброблення сайту в потоці: {:?}", duration_site);
             println!("📊 Речень оброблено: {}", cout_sentens);
             println!("--------------------------------------------------");
-        });
+        })
+        .await;
 
-        handles.push(handle);
-    }
-
-    for handle in handles {
-        let _ = handle.await;
-    }
-
+    println!("✅ Всі сайти оброблуні час: {:?}", start_time_total.elapsed());
     Ok(())
 }
 

@@ -45,6 +45,7 @@ candle-core = { version = "0.10.2", features = ["mkl"] }
 unicode-segmentation = "1.11.0"
 crossbeam-channel = "0.5"
 hnsw_rs = "0.3.4"
+futures = "0.3.32"
 
 [profile.release]
 lto = "fat"      

@@ -1,5 +1,5 @@
 use unicode_segmentation::UnicodeSegmentation;
-use std::{error::Error};
+use std::error::Error;
 
 const TARGET_WORDS_PER_CHUNK: usize = 140;   
 const OVERLAP_WORDS: usize = 35;             
@@ -27,7 +27,11 @@ pub async fn extract_chunks(text_fragments: &[&str]) -> Result<Vec<String>, Box<
                 current_chunk.clear();
                 current_words.clear();
             }
-            chunks.push(sentence.to_string());
+
+            for chunk_words in sentence_words.chunks(TARGET_WORDS_PER_CHUNK) {
+                let giant_chunk = chunk_words.join(" ");
+                chunks.push(giant_chunk);
+            }
             continue;
         }
 

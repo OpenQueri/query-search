@@ -17,8 +17,8 @@ impl OnnxEmbeddingEngine {
                 .expect("Помилка: tokenizer.json не знайдено");
             
             let num_workers = std::thread::available_parallelism()
-            .map(|n| n.get().min(3)) 
-                .unwrap_or(3);
+            .map(|n| n.get().min(2)) 
+                .unwrap_or(2);
 
             let (tx, rx) = bounded::<Session>(num_workers);
 
