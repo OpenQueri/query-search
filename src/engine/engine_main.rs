@@ -84,7 +84,9 @@ impl EngineSearch {
             }
 
             let site_id = neighbor.d_id as u64;
+
             if let Some(url_entry) = sites.get(&site_id) {
+
                 let entry = scored_sites.entry(site_id).or_insert_with(|| SiteScore {
                     meta: url_entry.value().clone(),
                     count: 0,
@@ -122,7 +124,7 @@ impl EngineSearch {
 pub struct EngineEdit;
 
 impl EngineEdit {
-    pub async fn engine_insert(vector: Vec<f32>, data: MetaData) -> Result<(), Box<dyn Error + Send + Sync>> {
+    pub async fn engine_insert(tensor: &[f32], data: MetaData) -> Result<(), Box<dyn Error + Send + Sync>> {
         let id = Other::hash_u64(&data.url).await;
 
         get_original_sites().insert(id, data);
@@ -131,7 +133,7 @@ impl EngineEdit {
             let mut index_guard = SearchIndex::get_index()
                 .write()
                 .map_err(|_| "Не вдалося заблокувати HNSW для запису")?;
-            index_guard.insert((&vector, id as usize));
+            index_guard.insert((&tensor, id as usize));
         }
 
         SaveLoadData::save_everything().await?;

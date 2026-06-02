@@ -124,14 +124,15 @@ pub async fn add_data(data: Vec<DataSiteResponse>) -> Result<(), Box<dyn Error +
                         };
 
                         match raw_embedding {
-                            Ok(res) => {
+                            Ok(tensor) => {
+
                                 let meta_data = MetaData {
                                     url: site_data.link.clone(),
                                     title: site_data.title.clone(),
                                     image: site_data.image.clone(),
                                 };
 
-                                match EngineEdit::engine_insert(res, meta_data).await {
+                                match EngineEdit::engine_insert(&tensor, meta_data).await {
                                     Ok(_) => {},
                                     Err(e) => println!("add_data (insert error): {}", e),
                                 }
